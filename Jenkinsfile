@@ -28,6 +28,9 @@ pipeline {
     }
 
     stage('package') {
+      when {
+        branch 'master'
+      }
       agent {
         docker {
           image 'maven:3.6.3-jdk-11-slim'
@@ -41,6 +44,9 @@ pipeline {
     }
 
     stage('Docker BnP') {
+      when {
+        branch 'master'
+      }
       steps {
         script {
           docker.withRegistry('https://index.docker.io/v1/', 'dockerlogin') {
