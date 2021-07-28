@@ -1,30 +1,67 @@
-pipeline{
+pipeline {
+  agent none
+  stages {
+    stage('build') {
+      agent {
+        docker {
+          image 'maven:3.6.3-jdk-11-slim'
+        }
 
-agent any
+      }
+      steps {
+        echo 'compile maven app'
+        sh 'mvn compile'
+      }
+    }
 
-tools{
-maven 'Maven 3.6.3'
-}
+    stage('test') {
+      agent {
+        docker {
+          image 'maven:3.6.3-jdk-11-slim'
+        }
 
-stages{
-stage('build'){
-steps{
-echo 'compile maven app'
-sh 'mvn compile'
-}
-}
+      }
+      steps {
+        echo 'test maven app'
+        sh 'mvn clean test'
+      }
+    }
 
-stage('test'){
-steps{
-echo 'test maven app'
-sh 'mvn clean test'
-}
-}
-stage('package'){
-steps{
-echo 'package maven app'
-sh 'mvn package -DskipTests'
-}
-}
-}
+    stage('package') {
+      when {
+        branch 'master'
+      }
+      agent {
+        docker {
+          image 'maven:3.6.3-jdk-11-slim'
+        }
+
+      }
+      steps {
+        echo 'package maven app'
+        sh 'mvn package -DskipTests'
+      }
+    }
+
+    stage('Docker BnP') {
+      when {
+        branch 'master'
+      }
+      steps {
+        script {
+          docker.withRegistry('https://index.docker.io/v1/', 'dockerlogin') {
+            def dockerImage = docker.build("harikripa/sysfoo:v-${env.BRANCH_NAME}-${env.BUILD_ID}", "./")
+            dockerImage.push()
+            dockerImage.push("latest")
+            dockerImage.push("dev")
+          }
+        }
+
+      }
+    }
+
+  }
+  tools {
+    maven 'Maven 3.6.3'
+  }
 }
